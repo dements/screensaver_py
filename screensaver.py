@@ -5,7 +5,6 @@ from typing import List, Tuple
 import sys
 import traceback
 import math
-import pygame_gui
 
 # =============================================================================
 # CONFIGURATION - Adjust these parameters to modify the simulation
@@ -251,76 +250,6 @@ class WaterDrops:
         for drop in self.drops:
             drop.draw(screen)
 
-class ControlPanel:
-    def __init__(self, manager: pygame_gui.UIManager, rect: pygame.Rect):
-        self.panel = pygame_gui.elements.UIPanel(
-            relative_rect=rect,
-            manager=manager,
-            starting_layer_height=1
-        )
-        
-        # Calculate positions for sliders
-        slider_width = rect.width - 20
-        current_y = 10
-        slider_height = 20
-        gap = 30
-        
-        # Create sliders
-        self.sliders = {}
-        
-        # Drop Settings
-        self.add_slider("Drop Size", DROP_MIN_SIZE, 1, 10, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        self.add_slider("Drop Speed", DROP_SPEED_FACTOR, 0.01, 0.1, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        self.add_slider("Spawn Rate", DROP_SPAWN_RATE, 1, 30, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        
-        # Movement Settings
-        current_y += 10  # Extra gap for section
-        self.add_slider("Random Movement", RANDOM_MOVEMENT, 0, 2.0, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        self.add_slider("Momentum", MOMENTUM_FACTOR, 0, 1.0, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        self.add_slider("Wind Effect", WIND_EFFECT, -1.0, 1.0, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        
-        # Surface Tension Settings
-        current_y += 10  # Extra gap for section
-        self.add_slider("Surface Tension", SURFACE_TENSION, 0, 1.0, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        self.add_slider("Drop Stretch", TENSION_BREAK_POINT, 0.5, 3.0, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        
-        # Speed Settings
-        current_y += 10  # Extra gap for section
-        self.add_slider("Bottom Speed", BOTTOM_SPEED_MULTIPLIER, 1.0, 10.0, current_y, slider_width, slider_height, manager)
-        current_y += gap
-        self.add_slider("Speed Transition", SPEED_TRANSITION_HEIGHT, 0.1, 0.9, current_y, slider_width, slider_height, manager)
-
-    def add_slider(self, name: str, default_value: float, min_value: float, max_value: float, 
-                  y_pos: int, width: int, height: int, manager: pygame_gui.UIManager):
-        # Create label
-        pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect((10, y_pos), (width, 15)),
-            text=name,
-            manager=manager,
-            container=self.panel
-        )
-        
-        # Create slider
-        slider = pygame_gui.elements.UIHorizontalSlider(
-            relative_rect=pygame.Rect((10, y_pos + 15), (width, height)),
-            start_value=default_value,
-            value_range=(min_value, max_value),
-            manager=manager,
-            container=self.panel
-        )
-        self.sliders[name] = slider
-
-    def get_values(self) -> dict:
-        return {name: slider.get_current_value() for name, slider in self.sliders.items()}
-
 def main():
     try:
         print("Initializing pygame...")
@@ -338,22 +267,15 @@ def main():
             print("Trying windowed mode instead...")
             screen = pygame.display.set_mode((800, 600))
         
-        # Initialize GUI
-        manager = pygame_gui.UIManager((width, height))
-        control_panel = ControlPanel(
-            manager=manager,
-            rect=pygame.Rect(width - 250, 0, 250, height)
-        )
-        
         clock = pygame.time.Clock()
         print("Display setup complete")
 
-        simulation = WaterDrops(width - 250, height)  # Adjust width for control panel
+        simulation = WaterDrops(width, height)  # Use full width now
         print("Simulation created")
 
         running = True
         while running:
-            time_delta = clock.tick(60)/1000.0
+            clock.tick(60)  # Simplified timing
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -361,38 +283,11 @@ def main():
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         running = False
-                
-                # Handle GUI events
-                manager.process_events(event)
-
-            # Update GUI
-            manager.update(time_delta)
-            
-            # Get values from sliders and update simulation parameters
-            values = control_panel.get_values()
-            global DROP_MIN_SIZE, DROP_SPEED_FACTOR, DROP_SPAWN_RATE
-            global RANDOM_MOVEMENT, MOMENTUM_FACTOR, WIND_EFFECT
-            global SURFACE_TENSION, TENSION_BREAK_POINT
-            global BOTTOM_SPEED_MULTIPLIER, SPEED_TRANSITION_HEIGHT
-            
-            DROP_MIN_SIZE = values["Drop Size"]
-            DROP_SPEED_FACTOR = values["Drop Speed"]
-            DROP_SPAWN_RATE = int(values["Spawn Rate"])
-            RANDOM_MOVEMENT = values["Random Movement"]
-            MOMENTUM_FACTOR = values["Momentum"]
-            WIND_EFFECT = values["Wind Effect"]
-            SURFACE_TENSION = values["Surface Tension"]
-            TENSION_BREAK_POINT = values["Drop Stretch"]
-            BOTTOM_SPEED_MULTIPLIER = values["Bottom Speed"]
-            SPEED_TRANSITION_HEIGHT = values["Speed Transition"]
 
             # Draw simulation
             screen.fill((0, 0, 0))
             simulation.update()
             simulation.draw(screen)
-            
-            # Draw GUI
-            manager.draw_ui(screen)
             
             pygame.display.flip()
 
